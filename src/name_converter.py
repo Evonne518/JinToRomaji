@@ -24,18 +24,23 @@ class NameConverter:
         """转换姓名为罗马拼音"""
         # 1️⃣ 片假名优先
         if katakana.strip():
-            return self.kks.convert(katakana)[0]["hepburn"].upper()
+            return " ".join([item["hepburn"] for item in self.kks.convert(katakana)]).upper()
 
         # 2️⃣ 先查姓氏
         for surname in self.surname_dict:
             if kanji.startswith(surname):
                 surname_romaji = self.surname_dict[surname]
-                given_name_kanji = kanji[len(surname):]
-                
-                # 尝试匹配名字
-                given_name_romaji = self.given_name_dict.get(given_name_kanji, self.kks.convert(given_name_kanji)[0]["hepburn"])
-                
-                return f"{surname_romaji}{given_name_romaji}".upper()
+                given_name_kanji = kanji[len(surname):].strip()  # 去掉多余的空格
 
-        # 3️⃣ 没有匹配到姓氏，直接转换
-        return self.kks.convert(jaconv.hira2kata(kanji))[0]["hepburn"].upper()
+                # 处理名字
+                if given_name_kanji:
+                    if given_name_kanji in self.given_name_dict:
+                        given_name_romaji = self.given_name_dict[given_name_kanji]
+                    else:
+                        given_name_romaji = " ".join([item["hepburn"] for item in self.kks.convert(given_name_kanji)])
+                    return f"{surname_romaji} {given_name_romaji}".upper()  # 姓名之间加空格
+                else:
+                    return surname_romaji.upper()  # 只有姓氏，直接返回
+
+        # 3️⃣ 没有匹配到姓氏，直接转换（不额外加空格）
+        return " ".join([item["hepburn"] for item in self.kks.convert(jaconv.hira2kata(kanji))]).upper()
