@@ -24,7 +24,9 @@ class NameConverter:
         """转换姓名为罗马拼音"""
         # 1️⃣ 片假名优先
         if katakana.strip():
-            return " ".join([item["hepburn"] for item in self.kks.convert(katakana)]).upper()
+            words = katakana.split(" ")  # 按原始空格拆分
+            romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(word)]).strip() for word in words]
+            return " ".join(romaji_words).upper()  # 重新拼接，保持原空格
 
         # 2️⃣ 按空格分割姓氏和名字
         parts = kanji.split()  # 你自己提供的空格
