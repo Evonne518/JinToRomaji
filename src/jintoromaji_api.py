@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from name_converter import NameConverter
+from src.name_converter import NameConverter
 
 # 初始化 FastAPI
 app = FastAPI()
