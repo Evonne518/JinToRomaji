@@ -55,7 +55,3 @@ data = {
 response = requests.post(url, json=data, headers=headers)
 print(response.json())
 ```
-
----
-
-這樣可以讓使用者快速理解 API 的使用方法，並能直接複製指令來測試！🚀
