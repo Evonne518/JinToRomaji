@@ -5,6 +5,10 @@ from src.name_converter import NameConverter
 # 初始化 FastAPI
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return {"message": "JinToRomaji API is running!"}
+
 # 初始化姓名转换器
 converter = NameConverter()
 
