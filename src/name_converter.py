@@ -25,8 +25,10 @@ class NameConverter:
         # 1️⃣ 片假名优先
         if katakana.strip():
             return " ".join([item["hepburn"] for item in self.kks.convert(katakana)]).upper()
-
-        # 2️⃣ 先查姓氏
+        # 2️⃣ 按姓氏长度从长到短排序
+        sorted_surnames = sorted(self.surname_dict.keys(), key=len, reverse=True)
+    
+        # 3️⃣ 先查姓氏
         for surname in self.surname_dict:
             if kanji.startswith(surname):
                 surname_romaji = self.surname_dict[surname]
