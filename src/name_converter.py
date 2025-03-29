@@ -1,6 +1,5 @@
 import pandas as pd
 import pykakasi
-import jaconv
 
 class NameConverter:
     def __init__(self):
