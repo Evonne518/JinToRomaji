@@ -3,4 +3,4 @@ uvicorn
 pandas
 jaconv
 pykakasi
-fugashi
+fugashi[unidic-lite]
