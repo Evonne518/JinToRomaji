@@ -25,7 +25,7 @@ class NameConverterV2:
         若姓氏的羅馬拼音能對應 katakana 的前段，就切開。
         若姓氏無法切開，再嘗試名字進行匹配。
         """
-        if " " not in katakana and " " in kanji:
+        if " " not in katakana and " " in kanji and len(kanji.split()) == 2:
             surname, given = kanji.split()
 
             # 將姓氏轉為羅馬拼音
