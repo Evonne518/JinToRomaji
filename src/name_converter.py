@@ -21,6 +21,9 @@ class NameConverter:
 
     def convert(self, kanji, katakana=""):
         """转换姓名为罗马拼音"""
+         # 【新增】：如果 kanji 是全英文
+        if all(ord(c) < 128 for c in kanji if c.strip()):
+            return kanji.upper()
         # 1️⃣ 片假名优先
         if katakana.strip():
             words = katakana.split(" ")  # 按原始空格拆分
