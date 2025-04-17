@@ -19,7 +19,7 @@ class NameConverterV2:
             print(f"无法加载 {file_path}: {e}")
             return {}
 
-    def _convert_by_kanji(self, kanji, katakana=""):
+    def _convert_by_kanji(self, kanji, katakana="", inserted_space=""):
         """根据 kanji 转换为罗马拼音，可指定 katakana"""
         parts = kanji.split()
     
@@ -47,7 +47,7 @@ class NameConverterV2:
         return {
             "katakana": katakana,  # 保持原始 katakana
             "romaji": romaji.upper(),  # 大寫
-            "inserted_space": ""
+            "inserted_space": inserted_space # 設定插入空格失敗為 N
         }
 
 
@@ -88,36 +88,41 @@ class NameConverterV2:
         # 【新增】：如果 kanji 是全英文
         if all(ord(c) < 128 for c in kanji if c.strip()):
             return {
-                "katakana": katakana,
+                "katakana": "",
                 "romaji": kanji.upper(),
                 "inserted_space": ""
             }
     
         if katakana.strip():
-            # 如果 katakana 无空格，尝试根据 kanji 拆分
             if " " not in katakana and " " in kanji:
                 split_result = self.split_katakana_by_kanji_parts(kanji, katakana)
                 if split_result[2] == "Y":
-                    # 成功插入空格，照 split 結果處理
+                    # 成功切開 katakana
                     words = split_result[:2]
-                    romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(word)]).strip() for word in words]
+                    romaji_words = [
+                        " ".join([item["hepburn"] for item in self.kks.convert(word)]).strip()
+                        for word in words
+                    ]
                     return {
                         "katakana": " ".join(words),
                         "romaji": " ".join(romaji_words).upper(),
                         "inserted_space": "Y"
                     }
                 else:
-                    # 插入失敗（N），走 kanji 轉換，但要保留 katakana
-                    return self._convert_by_kanji(kanji, katakana)
+                    # 切不開 → 用 kanji 翻譯，並設插入空格為 N
+                    return self._convert_by_kanji(kanji, katakana=katakana, inserted_space="N")
             else:
-                # katakana 本身有空格，直接用
+                # katakana 原本就有空格
                 words = katakana.split(" ")
-                romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(word)]).strip() for word in words]
+                romaji_words = [
+                    " ".join([item["hepburn"] for item in self.kks.convert(word)]).strip()
+                    for word in words
+                ]
                 return {
                     "katakana": " ".join(words),
                     "romaji": " ".join(romaji_words).upper(),
-                    "inserted_space": ""  # 本來就有空格
+                    "inserted_space": ""
                 }
     
-        # katakana 沒內容，走 kanji 轉換
-        return self._convert_by_kanji(kanji)
+        # 如果 katakana 是空的 → 直接用 kanji 翻譯，並設插入空格為 N
+        return self._convert_by_kanji(kanji, inserted_space="")
