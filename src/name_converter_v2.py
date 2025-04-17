@@ -22,30 +22,31 @@ class NameConverterV2:
     def _convert_by_kanji(self, kanji, katakana=""):
         """根据 kanji 转换为罗马拼音，可指定 katakana"""
         parts = kanji.split()
+    
         if len(parts) == 2:
+            # 正常「姓 + 名」兩段
             surname_kanji, given_name_kanji = parts
-        else:
-            surname_kanji, given_name_kanji = parts[0], ""
-    
-        surname_romaji = self.surname_dict.get(
-            surname_kanji,
-            " ".join([item["hepburn"] for item in self.kks.convert(surname_kanji)])
-        )
-    
-        if given_name_kanji:
+            surname_romaji = self.surname_dict.get(
+                surname_kanji,
+                " ".join([item["hepburn"] for item in self.kks.convert(surname_kanji)])
+            )
             given_name_romaji = self.given_name_dict.get(
                 given_name_kanji,
                 " ".join([item["hepburn"] for item in self.kks.convert(given_name_kanji)])
             )
-            return {
-                "katakana": katakana,
-                "romaji": f"{surname_romaji} {given_name_romaji}".upper(),
-                "inserted_space": ""
-            }
+            romaji = f"{surname_romaji} {given_name_romaji}"
+        else:
+            # 超過兩段，直接逐段翻譯，每個字之間保持空格
+            romaji_parts = []
+            for part in parts:
+                if part.strip():  # 避免空白
+                    romaji_part = " ".join([item["hepburn"] for item in self.kks.convert(part)])
+                    romaji_parts.append(romaji_part)
+            romaji = " ".join(romaji_parts)
     
         return {
-            "katakana": katakana,
-            "romaji": surname_romaji.upper(),
+            "katakana": katakana,  # 保持原始 katakana
+            "romaji": romaji.upper(),  # 大寫
             "inserted_space": ""
         }
 
