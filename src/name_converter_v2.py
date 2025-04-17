@@ -87,7 +87,7 @@ class NameConverterV2:
         # 【新增】：如果 kanji 是全英文
         if all(ord(c) < 128 for c in kanji if c.strip()):
             return {
-                "katakana": "",
+                "katakana": katakana,
                 "romaji": kanji.upper(),
                 "inserted_space": ""
             }
