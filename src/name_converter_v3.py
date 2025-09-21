@@ -88,36 +88,45 @@ class NameConverterV3:
                 romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(w)]).strip() for w in words]
                 return {"katakana": " ".join(words), "romaji": " ".join(romaji_words).upper(), "inserted_space": ""}
 
-        # 無 katakana → 分拆 Kanji
-        parts = kanji.split() if " " in kanji else [kanji]
-        surname_kanji = parts[0]
-        given_name_kanji = parts[1] if len(parts) > 1 else ""
-
-        romaji_words = []
-        katakana_words = []
-
-        # 處理姓氏
-        if surname_kanji in self.surname_dict:
-            surname_romaji = self.surname_dict[surname_kanji]
-            surname_kata = self.romaji_to_katakana(surname_romaji)
+        # 無 katakana → 嘗試拆連續漢字（V2 風格）
+        kana_generated = self.kanji_to_katakana(kanji)
+        split_result = self.split_katakana_by_kanji_parts(kanji, kana_generated)
+        if split_result[2] == "Y":
+            words = split_result[:2]
+            romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(w)]).strip() for w in words]
+            katakana_words = words
+            inserted_space = "Y"
         else:
-            surname_kata = self.kanji_to_katakana(surname_kanji)
-            surname_romaji = " ".join([item["hepburn"] for item in self.kks.convert(surname_kata)])
-        romaji_words.append(surname_romaji)
-        katakana_words.append(surname_kata)
+            # 原本 Kanji 拆成 1 或 2 部分
+            parts = kanji.split() if " " in kanji else [kanji]
+            surname_kanji = parts[0]
+            given_name_kanji = parts[1] if len(parts) > 1 else ""
 
-        # 處理名字
-        if given_name_kanji:
-            if given_name_kanji in self.given_name_dict:
-                given_romaji = self.given_name_dict[given_name_kanji]
-                given_kata = self.romaji_to_katakana(given_romaji)
+            romaji_words = []
+            katakana_words = []
+
+            # 處理姓氏
+            if surname_kanji in self.surname_dict:
+                surname_romaji = self.surname_dict[surname_kanji]
+                surname_kata = self.romaji_to_katakana(surname_romaji)
             else:
-                given_kata = self.kanji_to_katakana(given_name_kanji)
-                given_romaji = " ".join([item["hepburn"] for item in self.kks.convert(given_kata)])
-            romaji_words.append(given_romaji)
-            katakana_words.append(given_kata)
+                surname_kata = self.kanji_to_katakana(surname_kanji)
+                surname_romaji = " ".join([item["hepburn"] for item in self.kks.convert(surname_kata)])
+            romaji_words.append(surname_romaji)
+            katakana_words.append(surname_kata)
 
-        inserted_space = "Y" if len(romaji_words) == 2 else "N"
+            # 處理名字
+            if given_name_kanji:
+                if given_name_kanji in self.given_name_dict:
+                    given_romaji = self.given_name_dict[given_name_kanji]
+                    given_kata = self.romaji_to_katakana(given_romaji)
+                else:
+                    given_kata = self.kanji_to_katakana(given_name_kanji)
+                    given_romaji = " ".join([item["hepburn"] for item in self.kks.convert(given_kata)])
+                romaji_words.append(given_romaji)
+                katakana_words.append(given_kata)
+
+            inserted_space = "Y" if len(romaji_words) == 2 else "N"
 
         return {
             "katakana": " ".join(katakana_words),
