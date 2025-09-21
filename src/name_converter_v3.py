@@ -20,39 +20,39 @@ class NameConverterV3:
             return {}
 
     def _convert_by_kanji(self, kanji, katakana="", inserted_space=""):
-        """根據 kanji 轉換為 Romaji，同時生成 Katakana 並保持空格與 Romaji 一致"""
-        
-        # 嘗試用空格拆分，沒有空格就拆成兩段（姓+名）
-        parts = kanji.split()
-        if len(parts) == 1 and len(kanji) > 1:
-            # 自動拆成兩段：姓 + 名
-            # 這裡可以按第一個漢字當姓，其餘當名，也可以改成更複雜的拆法
-            # 為簡單起見，先拆成 [前n-1字當姓, 最後一個字當名]
-            parts = [kanji[:-2], kanji[-2:]] if len(kanji) > 2 else [kanji[0], kanji[1:]]
+        """根據 kanji 轉換為 Romaji，同時生成 Katakana。
+        - 字典命中 → Romaji 用字典，Katakana 根據 Romaji 生成，保證發音一致
+        - 字典未命中 → 用 pykakasi 轉整段漢字
+        """
+        parts = kanji.split()  # 先用空格拆段
     
-        # 如果 katakana 是空或連寫，按 kanji 拆段生成 Katakana
-        if not katakana.strip() or (" " not in katakana and len(parts) > 1):
-            katakana_parts = []
-            for part in parts:
-                converted = self.kks.convert(part)
-                katakana_part = "".join([x["kana"] for x in converted])
-                katakana_parts.append(katakana_part)
-            katakana = " ".join(katakana_parts)  # 用空格分隔，每段對應 Romaji
-    
-        # 生成 Romaji
         romaji_parts = []
+        katakana_parts = []
+    
+        # 處理每段漢字
         for part in parts:
-            surname_romaji = self.surname_dict.get(part, None)
-            if surname_romaji:
-                romaji_parts.append(surname_romaji)
+            surname_romaji = self.surname_dict.get(part)
+            given_romaji = self.given_name_dict.get(part)
+            # 字典命中
+            if surname_romaji or given_romaji:
+                romaji = surname_romaji or given_romaji
+                romaji_parts.append(romaji.upper())
+                # 由 Romaji 生成 Katakana
+                katakana_part = "".join([x["kana"] for x in self.kks.convert(romaji.lower())])
+                katakana_parts.append(katakana_part)
             else:
+                # 字典未命中 → 用 pykakasi 轉漢字
                 converted = self.kks.convert(part)
-                romaji_parts.append(" ".join([x["hepburn"] for x in converted]))
-        romaji = " ".join(romaji_parts)
+                romaji_parts.append(" ".join([x["hepburn"] for x in converted]).upper())
+                katakana_parts.append("".join([x["kana"] for x in converted]))
+    
+        # 合併結果
+        katakana_result = " ".join(katakana_parts)
+        romaji_result = " ".join(romaji_parts)
     
         return {
-            "katakana": katakana,
-            "romaji": romaji.upper(),
+            "katakana": katakana_result,
+            "romaji": romaji_result,
             "inserted_space": inserted_space
         }
 
