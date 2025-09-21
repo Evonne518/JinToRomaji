@@ -20,18 +20,19 @@ class NameConverterV3:
             return {}
 
     def _convert_by_kanji(self, kanji, katakana="", inserted_space=""):
-        """根据 kanji 转换为罗马拼音，同时生成 katakana（若原本为空）"""
+        """根据 kanji 转换为罗马拼音，同时生成 katakana 并保持空格与 Romaji 一致"""
         parts = kanji.split()
     
-        # 如果 katakana 为空，就生成 katakana
+        # 如果 katakana 为空，就生成 katakana，每段对应 Romaji 空格
         if not katakana.strip():
             katakana_parts = []
             for part in parts:
                 converted = self.kks.convert(part)
                 katakana_part = "".join([x["kana"] for x in converted])
                 katakana_parts.append(katakana_part)
-            katakana = " ".join(katakana_parts)
+            katakana = " ".join(katakana_parts)  # 用空格分隔，和 Romaji 一致
     
+        # 生成 Romaji
         if len(parts) == 2:
             surname_kanji, given_name_kanji = parts
             surname_romaji = self.surname_dict.get(
@@ -56,6 +57,7 @@ class NameConverterV3:
             "romaji": romaji.upper(),
             "inserted_space": inserted_space
         }
+
 
     
     def split_katakana_by_kanji_parts(self, kanji, katakana):
