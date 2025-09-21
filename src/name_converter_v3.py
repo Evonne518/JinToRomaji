@@ -6,8 +6,6 @@ class NameConverterV3:
         # 載入 CSV 詞典
         self.surname_dict = self.load_csv("data/surnames.csv")
         self.given_name_dict = self.load_csv("data/given_names.csv")
-
-        # 初始化 pykakasi
         self.kks = pykakasi.kakasi()
 
     def load_csv(self, file_path):
@@ -23,10 +21,23 @@ class NameConverterV3:
         hira = "".join([item["hira"] for item in self.kks.convert(text)])
         return "".join([chr(ord(c) + 0x60) if "ぁ" <= c <= "ん" else c for c in hira])
 
-    def romaji_to_katakana(self, romaji: str) -> str:
-        """Romaji → Katakana (簡單版透過 pykakasi)"""
-        hira = "".join([item["hira"] for item in self.kks.convert(romaji)])
-        return "".join([chr(ord(c) + 0x60) if "ぁ" <= c <= "ん" else c for c in hira])
+    # 沿用 V2 的拆分邏輯
+    def split_katakana_by_kanji_parts(self, kanji, katakana):
+        if " " not in katakana and " " in kanji and len(kanji.split()) == 2:
+            surname, given = kanji.split()
+            expected_surname_romaji = "".join([x["hepburn"] for x in self.kks.convert(surname)]).lower()
+            for i in range(1, len(katakana)):
+                first = katakana[:i]
+                katakana_surname_romaji = "".join([x["hepburn"] for x in self.kks.convert(first)]).lower()
+                if katakana_surname_romaji == expected_surname_romaji:
+                    return [first, katakana[i:], "Y"]
+            expected_given_romaji = self.kks.convert(given)[0]["hepburn"].lower()
+            for i in range(len(katakana)-1, 0, -1):
+                last = katakana[i:]
+                katakana_given_romaji = "".join([x["hepburn"] for x in self.kks.convert(last)]).lower()
+                if katakana_given_romaji == expected_given_romaji:
+                    return [katakana[:i], last, "Y"]
+        return [katakana, "", "N"]
 
     def _convert_by_kanji(self, kanji, katakana="", inserted_space=""):
         parts = kanji.split()
@@ -43,10 +54,9 @@ class NameConverterV3:
             romaji = f"{surname_romaji} {given_name_romaji}"
         else:
             romaji = " ".join([item["hepburn"] for item in self.kks.convert(kanji)])
-
         return {
             "katakana": katakana,
-            "romaji": romaji.upper(),
+            "romaji": " ".join(romaji.split()).upper(),
             "inserted_space": inserted_space
         }
 
@@ -55,23 +65,27 @@ class NameConverterV3:
         if all(ord(c) < 128 for c in kanji if c.strip()):
             return {"katakana": "", "romaji": kanji.upper(), "inserted_space": ""}
 
-        # 有 katakana → 跟 v2 一樣走
+        # 有 katakana → 沿用 V2
         if katakana.strip():
-            return self._convert_by_kanji(kanji, katakana, inserted_space="")
+            if " " not in katakana and " " in kanji:
+                split_result = self.split_katakana_by_kanji_parts(kanji, katakana)
+                if split_result[2] == "Y":
+                    words = split_result[:2]
+                    romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(w)]).strip() for w in words]
+                    return {"katakana": " ".join(words), "romaji": " ".join(romaji_words).upper(), "inserted_space": "Y"}
+                else:
+                    return self._convert_by_kanji(kanji, katakana=katakana, inserted_space="N")
+            else:
+                words = katakana.split(" ")
+                romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(w)]).strip() for w in words]
+                return {"katakana": " ".join(words), "romaji": " ".join(romaji_words).upper(), "inserted_space": ""}
 
-        # 無 katakana → 新邏輯
+        # 無 katakana → 推測 Katakana
         katakana_guess = self.kanji_to_katakana(kanji)
-
-        # 先查 CSV 詞典
-        if kanji in self.surname_dict:
-            romaji = self.surname_dict[kanji]
-            katakana_from_romaji = self.romaji_to_katakana(romaji)
-            return {
-                "katakana": katakana_from_romaji,
-                "romaji": romaji.upper(),
-                "inserted_space": "N"
-            }
-
-        # CSV 無命中 → 用 katakana_guess 翻譯
-        romaji = " ".join([item["hepburn"] for item in self.kks.convert(katakana_guess)])
-        return {"katakana": katakana_guess, "romaji": romaji.upper(), "inserted_space": "N"}
+        split_result = self.split_katakana_by_kanji_parts(kanji, katakana_guess)
+        if split_result[2] == "Y":
+            words = split_result[:2]
+            romaji_words = [" ".join([item["hepburn"] for item in self.kks.convert(w)]).strip() for w in words]
+            return {"katakana": " ".join(words), "romaji": " ".join(romaji_words).upper(), "inserted_space": "N"}
+        else:
+            return self._convert_by_kanji(kanji, katakana=katakana_guess, inserted_space="N")
