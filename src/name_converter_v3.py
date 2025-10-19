@@ -1,6 +1,8 @@
 import pandas as pd
 import re
 import pykakasi
+import jaconv  # ✅ 新增：用於羅馬拼音轉片假名
+
 
 class NameConverterV3:
     def __init__(self):
@@ -16,12 +18,18 @@ class NameConverterV3:
             print(f"⚠️ 無法載入 {file_path}: {e}")
             return {}
 
+    def _romaji_to_katakana(self, romaji: str) -> str:
+        """
+        ✅ 將羅馬拼音轉換為片假名（例如 'haruna' → 'ハルナ'）
+        這確保字典命中時，Romaji 與 Katakana 一致。
+        """
+        return jaconv.alphabet2kata(romaji.lower())
+
     def _join_romaji_smooth(self, text):
         """
         合併多餘空格：DAI RA → DAIRA, KAN TA → KANTA, I CHI ROU → ICHIROU
         但保留姓與名之間的空格
         """
-        # 將單字中間的小空格合併
         text = re.sub(r"\b([A-Z]{1,3})\s+([A-Z]{1,3})\b", r"\1\2", text)
         text = re.sub(r"\s{2,}", " ", text)
         return text.strip()
@@ -29,7 +37,7 @@ class NameConverterV3:
     def _convert_by_kanji(self, kanji, katakana="", inserted_space=""):
         """
         原始轉換邏輯：
-        - 字典命中 → Romaji 用字典，Katakana 根據 Romaji 生成
+        - 字典命中 → Romaji 用字典，Katakana 根據 Romaji 生成（使用 _romaji_to_katakana）
         - 字典未命中 → pykakasi 轉整段漢字
         """
         parts = kanji.split()
@@ -42,14 +50,13 @@ class NameConverterV3:
             if surname_romaji or given_romaji:
                 romaji = surname_romaji or given_romaji
                 romaji_parts.append(romaji.upper())
-                katakana_part = "".join([x["kana"] for x in self.kks.convert(romaji.lower())])
+                katakana_part = self._romaji_to_katakana(romaji)  # ✅ 用羅馬拼音生片假名
                 katakana_parts.append(katakana_part)
             else:
                 converted = self.kks.convert(part)
                 romaji_parts.append(" ".join([x["hepburn"] for x in converted]).upper())
                 katakana_parts.append("".join([x["kana"] for x in converted]))
 
-        # 先拼接，再套用空格修正
         romaji_result = self._join_romaji_smooth(" ".join(romaji_parts))
         katakana_result = " ".join(katakana_parts).strip()
 
