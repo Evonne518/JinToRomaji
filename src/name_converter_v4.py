@@ -77,4 +77,15 @@ class NameConverterV4:
             romaji_result = self._join_romaji_smooth(" ".join(romaji_words))
             return {
                 "katakana": " ".join(words),
-                "ro
+                "romaji": romaji_result,
+                "inserted_space": ""
+            }
+
+        # 無片假名，用漢字轉
+        # 嘗試完整姓名字典匹配
+        romaji, kata = self._convert_kanji_segment(kanji)
+        return {
+            "katakana": kata,
+            "romaji": romaji,
+            "inserted_space": ""
+        }
