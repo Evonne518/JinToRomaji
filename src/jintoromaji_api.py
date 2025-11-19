@@ -3,7 +3,8 @@ from pydantic import BaseModel
 import re
 from src.name_converter import NameConverter
 from src.name_converter_v2 import NameConverterV2
-from src.name_converter_v3 import NameConverterV3  # ⬅️ 新增
+from src.name_converter_v3 import NameConverterV3 
+from src.name_converter_v4 import NameConverterV4  # ⬅️ 新增
 
 app = FastAPI()
 
@@ -13,7 +14,8 @@ def home():
 
 converter_v1 = NameConverter()
 converter_v2 = NameConverterV2()
-converter_v3 = NameConverterV3()  # ⬅️ 新增
+converter_v3 = NameConverterV3() 
+converter_v4 = NameConverterV4()  # ⬅️ 新增
 
 class NameItem(BaseModel):
     kanji: str
@@ -37,8 +39,10 @@ def process_request(request: NameRequest, version: str):
             romaji = converter_v1.convert(kanji_clean, katakana_clean)
         elif version == "v2":
             romaji = converter_v2.convert(kanji_clean, katakana_clean)
-        elif version == "v3":  # ⬅️ 新增
+        elif version == "v3":  
             romaji = converter_v3.convert(kanji_clean, katakana_clean)
+        elif version == "v4":  # ⬅️ 新增
+            romaji = converter_v4.convert(kanji_clean, katakana_clean)
         else:
             raise HTTPException(status_code=400, detail="Invalid version. Please use 'v1', 'v2' or 'v3'.")
 
@@ -53,9 +57,13 @@ def convert_names_v1(request: NameRequest):
 def convert_names_v2(request: NameRequest):
     return process_request(request, "v2")
 
-@app.post("/convert_names/v3/")  # ⬅️ 新增
+@app.post("/convert_names/v3/") 
 def convert_names_v3(request: NameRequest):
     return process_request(request, "v3")
+
+@app.post("/convert_names/v4/")  # ⬅️ 新增
+def convert_names_v4(request: NameRequest):
+    return process_request(request, "v4")
 
 @app.post("/convert_names/")
 def convert_names(request: NameRequest, version: str = "v1"):
